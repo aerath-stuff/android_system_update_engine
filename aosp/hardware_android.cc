@@ -22,7 +22,6 @@
 #include <string>
 #include <string_view>
 
-#include <android/sysprop/GkiProperties.sysprop.h>
 #include <android-base/properties.h>
 #include <base/files/file_util.h>
 #include <base/strings/string_number_conversions.h>
@@ -73,6 +72,9 @@ ErrorCode IsTimestampNewerLogged(const std::string& partition_name,
                  << partition_name << " Partition timestamp: " << old_version
                  << " Update timestamp: " << new_version;
   }
+
+  // ignore the timestamp
+  error_code = ErrorCode::kSuccess;
   return error_code;
 }
 
@@ -321,13 +323,9 @@ ErrorCode HardwareAndroid::IsPartitionUpdateValid(
     auto error_code =
         IsTimestampNewerLogged(partition_name, old_version, new_version);
     if (error_code == ErrorCode::kPayloadTimestampError) {
-      bool prevent_downgrade =
-          android::sysprop::GkiProperties::prevent_downgrade_version().value_or(
-              false);
+      bool prevent_downgrade = false;
       if (!prevent_downgrade) {
-        LOG(WARNING) << "Downgrade of boot image is detected, but permitting "
-                        "update because device does not prevent boot image "
-                        "downgrade";
+        LOG(WARNING) << "Downgrade of boot image is detected, but permitting update anyway";
         // If prevent_downgrade_version sysprop is not explicitly set, permit
         // downgrade in boot image version.
         // Even though error_code is overridden here, always call
